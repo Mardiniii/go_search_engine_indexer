@@ -32,3 +32,11 @@
 [[constraint]]
   name = "github.com/PuerkitoBio/goquery"
   version = "1.4.0"
+
+[[constraint]]
+  name = "github.com/olivere/elastic"
+  version = "6.1.14"
+
+[[constraint]]
+  name = "github.com/teris-io/shortid"
+  version = "1.0.0"
