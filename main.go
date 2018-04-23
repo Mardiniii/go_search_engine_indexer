@@ -17,7 +17,6 @@ type Page struct {
 }
 
 func crawlURL(wg *sync.WaitGroup, url string) {
-	fmt.Println("Scraping:", url)
 	// Extract links, title and description
 	s := NewScraper(url)
 	if s == nil {
@@ -25,16 +24,14 @@ func crawlURL(wg *sync.WaitGroup, url string) {
 		return
 	}
 	links := s.ScrapeLinks()
-	fmt.Println("Scraped links:", len(links))
 	title, description := s.MetaDataInformation()
 	body := s.Body()
 
 	// Check if the page exists
-	existsLink, page := FindPage(url)
+	existsLink, page := ExistingPage(url)
 
 	if existsLink {
 		// Update the page in database
-		fmt.Println("URL:", url, "with ID:", page.ID, "already exists")
 		params := map[string]interface{}{
 			"title":       title,
 			"description": description,
@@ -46,9 +43,9 @@ func crawlURL(wg *sync.WaitGroup, url string) {
 			wg.Done()
 			return
 		}
+		fmt.Println("Page", url, "with ID", page.ID, "updated")
 	} else {
 		// Create the new page in the database.
-		fmt.Println("Creating new page in the databese for link:", url)
 		id, _ := shortid.Generate()
 		newPage := Page{
 			ID:          id,
@@ -62,6 +59,7 @@ func crawlURL(wg *sync.WaitGroup, url string) {
 			wg.Done()
 			return
 		}
+		fmt.Println("Page", url, "created")
 	}
 
 	for _, link := range links {
@@ -99,6 +97,6 @@ func main() {
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go crawlURL(&wg, "http://www.sebastianzapata.co")
+	go crawlURL(&wg, "https://www.npmjs.com/package/elasticsearch-console")
 	wg.Wait()
 }

@@ -129,9 +129,9 @@ func SearchContent(input string) []Page {
 	return pages
 }
 
-// FindPage return a boolean and a page if the link is already
+// ExistingPage return a boolean and a page if the link is already
 // stored in the database
-func FindPage(link string) (bool, Page) {
+func ExistingPage(link string) (bool, Page) {
 	var exists bool
 	var p Page
 
@@ -161,10 +161,9 @@ func FindPage(link string) (bool, Page) {
 
 // CreatePage adds a new page to the database
 func CreatePage(p Page) bool {
-	var err error
 	ctx := context.Background()
 
-	page, err := client.Index().
+	_, err := client.Index().
 		Index("pages").
 		Type("page").
 		Id(p.ID).
@@ -175,7 +174,6 @@ func CreatePage(p Page) bool {
 		fmt.Println(err)
 		return false
 	}
-	fmt.Printf("Indexed page %s to index %s, type %s\n", page.Id, page.Index, page.Type)
 	return true
 }
 
@@ -183,11 +181,10 @@ func CreatePage(p Page) bool {
 func UpdatePage(id string, params map[string]interface{}) bool {
 	ctx := context.Background()
 
-	update, err := client.Update().Index(indexName).Type("page").Id(id).Doc(params).Do(ctx)
+	_, err := client.Update().Index(indexName).Type("page").Id(id).Doc(params).Do(ctx)
 	if err != nil {
 		fmt.Println(err)
 		return false
 	}
-	fmt.Println("Updated page with id: ", update.Id)
 	return true
 }
