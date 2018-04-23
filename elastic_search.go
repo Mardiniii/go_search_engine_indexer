@@ -160,7 +160,7 @@ func FindPage(link string) (bool, Page) {
 }
 
 // CreatePage adds a new page to the database
-func CreatePage(p Page) {
+func CreatePage(p Page) bool {
 	var err error
 	ctx := context.Background()
 
@@ -172,20 +172,22 @@ func CreatePage(p Page) {
 		Do(ctx)
 
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return false
 	}
 	fmt.Printf("Indexed page %s to index %s, type %s\n", page.Id, page.Index, page.Type)
-	fmt.Println()
+	return true
 }
 
 // UpdatePage adds a new page to the database
-func UpdatePage(id string, params map[string]interface{}) {
+func UpdatePage(id string, params map[string]interface{}) bool {
 	ctx := context.Background()
 
 	update, err := client.Update().Index(indexName).Type("page").Id(id).Doc(params).Do(ctx)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return false
 	}
 	fmt.Println("Updated page with id: ", update.Id)
-	fmt.Println()
+	return true
 }

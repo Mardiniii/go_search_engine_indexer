@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -17,7 +17,8 @@ type Scraper struct {
 func NewScraper(u string) *Scraper {
 	d, err := goquery.NewDocument(u)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return nil
 	}
 
 	return &Scraper{
@@ -55,6 +56,7 @@ func (s *Scraper) ScrapeLinks() []string {
 
 			if link != "" {
 				link = strings.TrimRight(link, "/")
+				link = strings.TrimRight(link, ":")
 				links = append(links, link)
 			}
 		}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/teris-io/shortid"
 )
@@ -15,9 +16,14 @@ type Page struct {
 	URL         string `json:"url"`
 }
 
-func crawlURL(url string) {
+func crawlURL(wg *sync.WaitGroup, url string) {
+	fmt.Println("Scraping:", url)
 	// Extract links, title and description
 	s := NewScraper(url)
+	if s == nil {
+		wg.Done()
+		return
+	}
 	links := s.ScrapeLinks()
 	fmt.Println("Scraped links:", len(links))
 	title, description := s.MetaDataInformation()
@@ -35,7 +41,11 @@ func crawlURL(url string) {
 			"body":        body,
 		}
 
-		UpdatePage(page.ID, params)
+		success := UpdatePage(page.ID, params)
+		if !success {
+			wg.Done()
+			return
+		}
 	} else {
 		// Create the new page in the database.
 		fmt.Println("Creating new page in the databese for link:", url)
@@ -47,8 +57,18 @@ func crawlURL(url string) {
 			Body:        body,
 			URL:         url,
 		}
-		CreatePage(newPage)
+		success := CreatePage(newPage)
+		if !success {
+			wg.Done()
+			return
+		}
 	}
+
+	for _, link := range links {
+		wg.Add(1)
+		go crawlURL(wg, link)
+	}
+	wg.Done()
 }
 
 func searchForContent(input string) {
@@ -77,14 +97,8 @@ func main() {
 	if !exists {
 		CreateIndex(indexName)
 	}
-
-	crawlURL("http://www.elcolombiano.com")
-	crawlURL("http://www.makeitreal.camp")
-	crawlURL("http://www.facebook.com")
-	crawlURL("http://www.eltiempo.com")
-	crawlURL("http://www.elespectador.com")
-	crawlURL("http://www.atlnacional.com.co")
-
-	searchForContent("WEB Developer")
-	searchForContent("Capturan")
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go crawlURL(&wg, "http://www.sebastianzapata.co")
+	wg.Wait()
 }
