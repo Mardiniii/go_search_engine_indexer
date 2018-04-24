@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/teris-io/shortid"
@@ -95,6 +96,7 @@ func worker(wg *sync.WaitGroup, id int) {
 }
 
 func main() {
+	start := os.Args[1]
 	NewElasticSearchClient()
 	exists := ExistsIndex(indexName)
 
@@ -104,9 +106,9 @@ func main() {
 	var wg sync.WaitGroup
 	noOfWorkers := 10
 
-	go func() {
-		queue <- "http://www.makeitreal.camp"
-	}()
+	go func(s string) {
+		queue <- s
+	}(start)
 
 	wg.Add(noOfWorkers)
 	for i := 1; i <= noOfWorkers; i++ {
