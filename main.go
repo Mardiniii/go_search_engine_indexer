@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/teris-io/shortid"
@@ -16,25 +17,23 @@ type Page struct {
 	URL         string `json:"url"`
 }
 
-func crawlURL(wg *sync.WaitGroup, url string) {
-	fmt.Println("Scraping:", url)
+var queue = make(chan string)
+
+func crawlURL(url string) {
 	// Extract links, title and description
 	s := NewScraper(url)
 	if s == nil {
-		wg.Done()
 		return
 	}
 	links := s.ScrapeLinks()
-	fmt.Println("Scraped links:", len(links))
 	title, description := s.MetaDataInformation()
 	body := s.Body()
 
 	// Check if the page exists
-	existsLink, page := FindPage(url)
+	existsLink, page := ExistingPage(url)
 
 	if existsLink {
 		// Update the page in database
-		fmt.Println("URL:", url, "with ID:", page.ID, "already exists")
 		params := map[string]interface{}{
 			"title":       title,
 			"description": description,
@@ -43,12 +42,11 @@ func crawlURL(wg *sync.WaitGroup, url string) {
 
 		success := UpdatePage(page.ID, params)
 		if !success {
-			wg.Done()
 			return
 		}
+		fmt.Println("Page", url, "with ID", page.ID, "updated")
 	} else {
 		// Create the new page in the database.
-		fmt.Println("Creating new page in the databese for link:", url)
 		id, _ := shortid.Generate()
 		newPage := Page{
 			ID:          id,
@@ -59,16 +57,16 @@ func crawlURL(wg *sync.WaitGroup, url string) {
 		}
 		success := CreatePage(newPage)
 		if !success {
-			wg.Done()
 			return
 		}
+		fmt.Println("Page", url, "created")
 	}
 
 	for _, link := range links {
-		wg.Add(1)
-		go crawlURL(wg, link)
+		go func(l string) {
+			queue <- l
+		}(link)
 	}
-	wg.Done()
 }
 
 func searchForContent(input string) {
@@ -90,7 +88,15 @@ func searchForContent(input string) {
 	fmt.Println()
 }
 
+func worker(wg *sync.WaitGroup, id int) {
+	for link := range queue {
+		crawlURL(link)
+	}
+	wg.Done()
+}
+
 func main() {
+	start := os.Args[1]
 	NewElasticSearchClient()
 	exists := ExistsIndex(indexName)
 
@@ -98,7 +104,15 @@ func main() {
 		CreateIndex(indexName)
 	}
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go crawlURL(&wg, "http://www.sebastianzapata.co")
+	noOfWorkers := 10
+
+	go func(s string) {
+		queue <- s
+	}(start)
+
+	wg.Add(noOfWorkers)
+	for i := 1; i <= noOfWorkers; i++ {
+		go worker(&wg, i)
+	}
 	wg.Wait()
 }
