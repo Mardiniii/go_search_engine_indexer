@@ -50,7 +50,6 @@ func NewElasticSearchClient() *elastic.Client {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Stop()
 
 	// Getting the ES version number is quite common, so there's a shortcut
 	esversion, err := client.ElasticsearchVersion("http://127.0.0.1:9200")

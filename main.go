@@ -16,11 +16,12 @@ type Page struct {
 	URL         string `json:"url"`
 }
 
-func crawlURL(wg *sync.WaitGroup, url string) {
+var queue = make(chan string)
+
+func crawlURL(url string) {
 	// Extract links, title and description
 	s := NewScraper(url)
 	if s == nil {
-		wg.Done()
 		return
 	}
 	links := s.ScrapeLinks()
@@ -40,7 +41,6 @@ func crawlURL(wg *sync.WaitGroup, url string) {
 
 		success := UpdatePage(page.ID, params)
 		if !success {
-			wg.Done()
 			return
 		}
 		fmt.Println("Page", url, "with ID", page.ID, "updated")
@@ -56,17 +56,16 @@ func crawlURL(wg *sync.WaitGroup, url string) {
 		}
 		success := CreatePage(newPage)
 		if !success {
-			wg.Done()
 			return
 		}
 		fmt.Println("Page", url, "created")
 	}
 
 	for _, link := range links {
-		wg.Add(1)
-		go crawlURL(wg, link)
+		go func(l string) {
+			queue <- l
+		}(link)
 	}
-	wg.Done()
 }
 
 func searchForContent(input string) {
@@ -88,6 +87,13 @@ func searchForContent(input string) {
 	fmt.Println()
 }
 
+func worker(wg *sync.WaitGroup, id int) {
+	for link := range queue {
+		crawlURL(link)
+	}
+	wg.Done()
+}
+
 func main() {
 	NewElasticSearchClient()
 	exists := ExistsIndex(indexName)
@@ -96,7 +102,15 @@ func main() {
 		CreateIndex(indexName)
 	}
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go crawlURL(&wg, "https://www.npmjs.com/package/elasticsearch-console")
+	noOfWorkers := 10
+
+	go func() {
+		queue <- "http://www.makeitreal.camp"
+	}()
+
+	wg.Add(noOfWorkers)
+	for i := 1; i <= noOfWorkers; i++ {
+		go worker(&wg, i)
+	}
 	wg.Wait()
 }

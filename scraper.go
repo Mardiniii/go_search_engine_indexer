@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -15,7 +16,18 @@ type Scraper struct {
 
 // NewScraper builds a new scraper for the website
 func NewScraper(u string) *Scraper {
-	d, err := goquery.NewDocument(u)
+	if !strings.HasPrefix(u, "http") {
+		return nil
+	}
+
+	response, err := http.Get(u)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	defer response.Body.Close()
+
+	d, err := goquery.NewDocumentFromReader(response.Body)
 	if err != nil {
 		fmt.Println(err)
 		return nil
