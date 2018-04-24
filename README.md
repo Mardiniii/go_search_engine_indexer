@@ -4,17 +4,32 @@ This repository contains a search engine indexer used to crawling the internet f
 
 ## Usage
 
-Clone the project to your local a machine a run the commands below into the project directory:
+Clone the project to your local a machine and run any of the commands below into the project directory:
+
+1. Crawl the internet
 
 ```go
 go build
-./go_search_engine_indexer START_CRAWLING_URL
+./go_search_engine_indexer index START_CRAWLING_URL
 ```
 
 Or, you can run the next command:
 
 ```go
-go run *.go START_CRAWLING_URL
+go run *.go index START_CRAWLING_URL
+```
+
+2. Delete the current elastic search index
+
+```go
+go build
+./go_search_engine_indexer delete
+```
+
+Or, you can run the next command:
+
+```go
+go run *.go delete
 ```
 
 ## Contributions

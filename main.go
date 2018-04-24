@@ -69,25 +69,6 @@ func crawlURL(url string) {
 	}
 }
 
-func searchForContent(input string) {
-	// Search content
-	pages := SearchContent(input)
-
-	fmt.Println(len(pages), "found it for:", input)
-
-	// Print page
-	for _, p := range pages {
-		fmt.Printf("Page - Id: %s - Title: %s - Description: %s - URL: %s\n",
-			p.ID,
-			p.Title,
-			p.Description,
-			p.URL,
-		)
-	}
-
-	fmt.Println()
-}
-
 func worker(wg *sync.WaitGroup, id int) {
 	for link := range queue {
 		crawlURL(link)
@@ -96,23 +77,40 @@ func worker(wg *sync.WaitGroup, id int) {
 }
 
 func main() {
-	start := os.Args[1]
-	NewElasticSearchClient()
-	exists := ExistsIndex(indexName)
+	args := os.Args
 
-	if !exists {
-		CreateIndex(indexName)
+	if len(args) < 2 {
+		fmt.Println("Not option provided, please specify one of the options below:\n")
+		fmt.Println("1. If you want to crawl the internet:")
+		fmt.Println("\tgo run *.go index CRAWLING_START_URL\n")
+		fmt.Println("2. If you want to delete the pages index from elastic search:")
+		fmt.Println("\tgo run *.go delete")
+		return
 	}
-	var wg sync.WaitGroup
-	noOfWorkers := 10
 
-	go func(s string) {
-		queue <- s
-	}(start)
+	switch args[1] {
+	case "index":
+		NewElasticSearchClient()
+		exists := ExistsIndex(indexName)
+		if !exists {
+			CreateIndex(indexName)
+		}
 
-	wg.Add(noOfWorkers)
-	for i := 1; i <= noOfWorkers; i++ {
-		go worker(&wg, i)
+		var wg sync.WaitGroup
+		noOfWorkers := 10
+		start := os.Args[2]
+
+		go func(s string) {
+			queue <- s
+		}(start)
+
+		wg.Add(noOfWorkers)
+		for i := 1; i <= noOfWorkers; i++ {
+			go worker(&wg, i)
+		}
+		wg.Wait()
+	case "delete":
+		NewElasticSearchClient()
+		DeleteIndex()
 	}
-	wg.Wait()
 }

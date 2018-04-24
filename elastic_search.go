@@ -15,22 +15,30 @@ const (
 	indexMapping = `{
 		"settings":{
 			"number_of_shards":1,
-			"number_of_replicas":0
+			"number_of_replicas":0,
+			"analysis": {
+	      "analyzer": {
+	        "clean_html": {
+						"type": "standard",
+	          "char_filter": ["html_strip"]
+	        }
+	      }
+	    }
 		},
 		"mappings":{
 			"page":{
 				"properties":{
 					"title": {
-						"type":"text"
+						"type": "text"
 					},
 					"description": {
-						"type":"text"
+						"type": "text"
 					},
 					"body": {
-						"type":"text"
+						"type": "text"
 					},
 					"url": {
-						"type":"text"
+						"type": "text"
 					}
 				}
 			}
@@ -78,10 +86,10 @@ func CreateIndex(i string) {
 	createIndex, err := client.CreateIndex(indexName).
 		Body(indexMapping).
 		Do(context.Background())
-
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	if !createIndex.Acknowledged {
 		log.Println("CreateIndex was not acknowledged. Check that timeout value is correct.")
 	}
@@ -98,34 +106,7 @@ func DeleteIndex() {
 	if !deleteIndex.Acknowledged {
 		log.Println("DeleteIndex was not acknowledged. Check that timeout value is correct.")
 	}
-}
-
-// SearchContent returns the results for a given query
-func SearchContent(input string) []Page {
-	var pages []Page
-
-	ctx := context.Background()
-	// Search for a page in the database using multi match query
-	q := elastic.NewMultiMatchQuery(input, "title", "description", "body").
-		Fuzziness("2").
-		MinimumShouldMatch("2")
-	result, err := client.Search().
-		Index(indexName).
-		Pretty(true).
-		Sort("_score", false).
-		Query(q).
-		Do(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var ttyp Page
-	for _, page := range result.Each(reflect.TypeOf(ttyp)) {
-		p := page.(Page)
-		pages = append(pages, p)
-	}
-
-	return pages
+	fmt.Println("Index", indexName, "deleted")
 }
 
 // ExistingPage return a boolean and a page if the link is already
