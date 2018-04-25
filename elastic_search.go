@@ -54,13 +54,13 @@ func NewElasticSearchClient() *elastic.Client {
 
 	// Create a new elastic client
 	client, err = elastic.NewClient(
-		elastic.SetURL("http://localhost:9200"), elastic.SetSniff(false))
+		elastic.SetURL("http://elasticsearch:9200"), elastic.SetSniff(false))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Getting the ES version number is quite common, so there's a shortcut
-	esversion, err := client.ElasticsearchVersion("http://127.0.0.1:9200")
+	esversion, err := client.ElasticsearchVersion("http://elasticsearch:9200")
 	if err != nil {
 		// Handle error
 		panic(err)
