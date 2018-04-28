@@ -80,9 +80,11 @@ func main() {
 	args := os.Args
 
 	if len(args) < 2 {
-		fmt.Println("Not option provided, please specify one of the options below:\n")
+		fmt.Println("Not option provided, please specify one of the options below:")
+		fmt.Println()
 		fmt.Println("1. If you want to crawl the internet:")
-		fmt.Println("\tgo run *.go index CRAWLING_START_URL\n")
+		fmt.Println("\tgo run *.go index CRAWLING_START_URL")
+		fmt.Println()
 		fmt.Println("2. If you want to delete the pages index from elastic search:")
 		fmt.Println("\tgo run *.go delete")
 		return

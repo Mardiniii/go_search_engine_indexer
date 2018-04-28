@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"time"
 
 	"github.com/olivere/elastic"
 )
@@ -51,12 +52,25 @@ var client *elastic.Client
 // NewElasticSearchClient returns an elastic seach client
 func NewElasticSearchClient() *elastic.Client {
 	var err error
+	connected := false
+	retries := 0
 
-	// Create a new elastic client
-	client, err = elastic.NewClient(
-		elastic.SetURL("http://elasticsearch:9200"), elastic.SetSniff(false))
-	if err != nil {
-		log.Fatal(err)
+	// Custom retry strategy for docker-compose initialization
+	for connected == false {
+		// Create a new elastic client
+		client, err = elastic.NewClient(
+			elastic.SetURL("http://elasticsearch:9200"), elastic.SetSniff(false))
+		if err != nil {
+			// log.Fatal(err)
+			if retries == 5 {
+				log.Fatal(err)
+			}
+			fmt.Println("Elasticsearch isn't ready for connection", 5-retries, "less")
+			retries++
+			time.Sleep(3 * time.Second)
+		} else {
+			connected = true
+		}
 	}
 
 	// Getting the ES version number is quite common, so there's a shortcut
