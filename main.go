@@ -25,7 +25,7 @@ func crawlURL(url string) {
 	if s == nil {
 		return
 	}
-	links := s.ScrapeLinks()
+	links := s.Links()
 	title, description := s.MetaDataInformation()
 	body := s.Body()
 
@@ -76,6 +76,39 @@ func worker(wg *sync.WaitGroup, id int) {
 	wg.Done()
 }
 
+func checkIndexPresence() {
+	NewElasticSearchClient()
+	exists := ExistsIndex(indexName)
+	if !exists {
+		CreateIndex(indexName)
+	}
+}
+
+// Allocate workers and start crawling with the first URL
+func startCrawling(start string) {
+	checkIndexPresence()
+
+	var wg sync.WaitGroup
+	noOfWorkers := 10
+
+	// Send first url to the channel
+	go func(s string) {
+		queue <- s
+	}(start)
+
+	// Create worker pool with noOfWorkers workers
+	wg.Add(noOfWorkers)
+	for i := 1; i <= noOfWorkers; i++ {
+		go worker(&wg, i)
+	}
+	wg.Wait()
+}
+
+func deleteIndex() {
+	NewElasticSearchClient()
+	DeleteIndex()
+}
+
 func main() {
 	args := os.Args
 
@@ -92,27 +125,8 @@ func main() {
 
 	switch args[1] {
 	case "index":
-		NewElasticSearchClient()
-		exists := ExistsIndex(indexName)
-		if !exists {
-			CreateIndex(indexName)
-		}
-
-		var wg sync.WaitGroup
-		noOfWorkers := 10
-		start := os.Args[2]
-
-		go func(s string) {
-			queue <- s
-		}(start)
-
-		wg.Add(noOfWorkers)
-		for i := 1; i <= noOfWorkers; i++ {
-			go worker(&wg, i)
-		}
-		wg.Wait()
+		startCrawling(args[2])
 	case "delete":
-		NewElasticSearchClient()
-		DeleteIndex()
+		deleteIndex()
 	}
 }

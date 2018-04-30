@@ -48,8 +48,23 @@ func (s *Scraper) Body() string {
 	return body
 }
 
-// ScrapeLinks returns the links from the website
-func (s *Scraper) ScrapeLinks() []string {
+func (s *Scraper) buildLink(href string) string {
+	var link string
+
+	if strings.HasPrefix(href, "/") {
+		link = strings.Join([]string{s.url, href}, "")
+	} else {
+		link = href
+	}
+
+	link = strings.TrimRight(link, "/")
+	link = strings.TrimRight(link, ":")
+
+	return link
+}
+
+// Links returns an array with all the links from the website
+func (s *Scraper) Links() []string {
 	links := make([]string, 0)
 	var link string
 
@@ -60,15 +75,8 @@ func (s *Scraper) ScrapeLinks() []string {
 		href, _ := linkTag.Attr("href")
 
 		if !strings.HasPrefix(href, "#") && !strings.HasPrefix(href, "javascript") {
-			if strings.HasPrefix(href, "/") {
-				link = strings.Join([]string{s.url, href}, "")
-			} else {
-				link = href
-			}
-
+			link = s.buildLink(href)
 			if link != "" {
-				link = strings.TrimRight(link, "/")
-				link = strings.TrimRight(link, ":")
 				links = append(links, link)
 			}
 		}
